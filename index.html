@@ -109,16 +109,16 @@ close.addEventListener('click',closeModal);modal.addEventListener('click',e=>{if
 document.addEventListener('keydown',e=>{if(!modal.classList.contains('visible'))return;if(e.key==='Escape')closeModal();if(e.key==='Tab'){e.preventDefault();close.focus();}});
 activate($('calendar'),()=>{const torn=$('calendar').classList.toggle('torn');$('calendar').setAttribute('aria-pressed',String(torn));$('calendar').setAttribute('aria-label',torn?'Tú eres mi suerte 💜. Restaurar el calendario':'Abrir la nota del calendario');});
 // El control aparece solo cuando hay una canción disponible.
-const audio=$('audio'),music=$('music');let attempted=false,failed=false;
+const audio=$('audio'),music=$('music');let started=false,userPaused=false,failed=false;
 audio.volume=.6;if(CONFIG.musica)audio.src=CONFIG.musica;
-function startMusic(){if(attempted||failed||!CONFIG.musica)return;attempted=true;audio.play().catch(()=>{});}
-document.addEventListener('pointerdown',e=>{if(!music.contains(e.target))startMusic();},{passive:true});
-document.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' ')startMusic();});
+// Los celulares solo dejan sonar audio al soltar el dedo o con un toque completo; se reintenta en cada toque hasta que suene.
+function startMusic(){if(started||userPaused||failed||!CONFIG.musica)return;audio.play().then(()=>{started=true;}).catch(()=>{});}
+['pointerup','touchend','click','keydown'].forEach(type=>document.addEventListener(type,e=>{if(!music.contains(e.target))startMusic();},{passive:true}));
 audio.addEventListener('loadedmetadata',()=>{if(!failed)music.hidden=false;});
 audio.addEventListener('error',()=>{failed=true;music.hidden=true;});
 function musicState(){music.setAttribute('aria-pressed',String(!audio.paused));music.setAttribute('aria-label',audio.paused?'Reproducir música':'Pausar música');}
 audio.addEventListener('play',musicState);audio.addEventListener('pause',musicState);
-music.addEventListener('click',()=>{attempted=true;if(audio.paused)audio.play().catch(()=>{});else audio.pause();});
+music.addEventListener('click',()=>{if(audio.paused){userPaused=false;audio.play().then(()=>{started=true;}).catch(()=>{});}else{userPaused=true;audio.pause();}});
 // Un lienzo para la luna, la niebla y las partículas; el tiempo se pausa al ocultar la pestaña.
 const canvas=$('sky'),ctx=canvas.getContext('2d');const random=(a,b)=>a+Math.random()*(b-a);
 let w=0,h=0,stars=[],flies=[],petals=[],raf=0,last=0,time=0,nextFlash=random(15,25),flash=-10,nextPetal=6;
